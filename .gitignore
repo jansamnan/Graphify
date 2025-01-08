@@ -1,0 +1,7 @@
+/vendor
+/.idea
+/.vscode
+/node_modules
+/phpunit.xml
+/.env
+/tests/Fixtures

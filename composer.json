@@ -1,0 +1,52 @@
+{
+    "name": "jansamnan/graphify",
+    "description": "A Laravel package to integrate Shopify's GraphQL API with built-in rate limiting and retry mechanisms.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Samnan Ullah Jan",
+            "email": "jansamnan2@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/jansamnan/Graphify/issues",
+        "source": "https://github.com/jansamnan/Graphify"
+    },
+    "require": {
+        "php": ">=7.3.0",
+        "ext-json": "*",
+        "caseyamcl/guzzle_retry_middleware": "^2.3",
+        "guzzlehttp/guzzle": "^6.5 || ^7.0"
+    },
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.8",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^0.12",
+        "phpunit/phpunit": "^6.2 || ^9.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Jansamnan\\Graphify\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Jansamnan\\Graphify\\GraphifyServiceProvider"
+            ],
+            "aliases": {
+                "Graphify": "Jansamnan\\Graphify\\Facades\\Graphify"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
+
