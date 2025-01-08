@@ -5,3 +5,4 @@
 /phpunit.xml
 /.env
 /tests/Fixtures
+.composer.lock
