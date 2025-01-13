@@ -12,7 +12,27 @@
     "support": {
         "issues": "https://github.com/jansamnan/Graphify/issues",
         "source": "https://github.com/jansamnan/Graphify"
-    },
+    }, 
+    "keywords": [
+        "shopify",
+        "node",
+        "jwt",
+        "app",
+        "graphql",
+        "rest",
+        "webhook",
+        "Admin API",
+        "Storefront API"
+    ],
+    "repositories": [
+        {
+            "type": "path",
+            "url": "https://github.com/jansamnan/Graphify",
+            "options": {
+                "symlink": true
+            }
+        }
+    ], 
     "require": {
         "php": ">=7.3.0",
         "ext-json": "*",
