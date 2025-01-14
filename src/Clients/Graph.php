@@ -27,17 +27,6 @@ class Graph extends AbstractClient implements GraphRequester
     protected $retryDelay;
 
     /**
-     * Constructor.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        $this->maxRetries = config('graphify.max_retries', 5);
-        $this->retryDelay = config('graphify.retry_delay', 1);
-    }
-
-    /**
      * {@inheritdoc}
      *
      * @throws \Exception When missing api password is missing for private apps.
@@ -45,6 +34,8 @@ class Graph extends AbstractClient implements GraphRequester
      */
     public function request(string $query, array $variables = [], bool $sync = true)
     {
+        $this->maxRetries = config('graphify.max_retries', 5);
+        $this->retryDelay = config('graphify.retry_delay', 1);
         /**
          * Run the request as sync or async.
          */
@@ -78,7 +69,6 @@ class Graph extends AbstractClient implements GraphRequester
         // Sync request (default)
         try {
             $response = $requestFn($request);
-
             return $this->handleSuccess($response);
         } catch (RequestException $e) {
             return $this->handleFailure($e);
@@ -98,19 +88,20 @@ class Graph extends AbstractClient implements GraphRequester
      */
     public function requestPaginate(string $query, array $variables = [], callable $callback = null, bool $sync = true)
     {
+        $this->maxRetries = config('graphify.max_retries', 5);
+        $this->retryDelay = config('graphify.retry_delay', 1);
         /**
          * Internal function to execute a single request.
          */
-        $executeRequest = function (array $request) use ($sync) {
+        $requestFn = function (array $request) use ($sync) {
             // Encode the request
             $json = json_encode($request);
 
             // Determine the method to call based on $sync
-            $method = $sync ? 'request' : 'requestAsync';
-
-            return $this->getClient()->{$method}(
+            $fn = $sync ? 'request' : 'requestAsync';
+            return $this->getClient()->{$fn}(
                 'POST',
-                '/admin/api/graphql.json',
+                $this->getBaseUri()->withPath('/admin/api/graphql.json'),
                 ['body' => $json]
             );
         };
@@ -118,7 +109,7 @@ class Graph extends AbstractClient implements GraphRequester
         /**
          * Internal function to handle retries.
          */
-        $handleRetry = function () use (&$attempt, &$executeRequest, &$requestFn, $request, $sync) {
+        $handleRetry = function () use (&$attempt, &$requestFn, $sync) {
             $maxRetries = $this->maxRetries;
             $retryDelay = $this->retryDelay;
             $attempt++;
@@ -156,22 +147,24 @@ class Graph extends AbstractClient implements GraphRequester
             ];
 
             try {
-                // Execute the request
-                $response = $executeRequest($request);
 
-                if ($sync) {
-                    // Handle synchronous response
-                    $body = $this->handleSuccess($response);
-                } else {
-                    // Handle asynchronous response
-                    $body = $response->then([$this, 'handleSuccess'], [$this, 'handleFailure'])->wait();
+                if ($sync === false) {
+                    // Async request
+                    $promise = $requestFn($request);
+
+                    $response = $promise->then([$this, 'handleSuccess'], [$this, 'handleFailure']);
+                }else{
+
+                    $response = $requestFn($request);
+
+                    $response = $this->handleSuccess($response);
                 }
 
                 // If a callback is provided, process the page and continue pagination
                 if (is_callable($callback)) {
                     // Invoke the callback with the response body
-                    call_user_func($callback, $body);
-
+                    call_user_func($callback, $response);
+                    $body = $response['body'];
                     // Check for rate limiting and handle if necessary
                     if (isset($body->extensions->cost)) {
                         $cost = $body->extensions->cost;

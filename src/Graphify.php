@@ -46,18 +46,21 @@ class Graphify
      */
     public function __construct()
     {
-        // Create a new Options instance
         $this->options = new Options();
-        // Set API credentials and version from config
         $this->options->setApiKey(config('graphify.api_key'));
         $this->options->setApiSecret(config('graphify.api_secret'));
         $this->options->setVersion(config('graphify.api_version'));
         $this->api = new BasicShopifyAPI($this->options);
-        // Set session
-        $this->api->setSession(new Session(config('graphify.shop_domain'), config('graphify.access_token')));
         $this->maxRetries = config('graphify.max_retries', 5);
         $this->retryDelay = config('graphify.retry_delay', 1);
     }
+
+    public function setCredentials(array $data)
+    {
+        $this->api->setSession(new Session($data['domain'], $data['token']));
+        return $this;
+    }
+
 
     public function graph(string $query, array $variables = [], bool $sync = true)
     {
