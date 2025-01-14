@@ -406,6 +406,14 @@ class BasicShopifyAPI implements SessionAware, ClientAware
     }
 
     /**
+     * @see Graph::request
+     */
+    public function graphPaginate(string $query, array $variables = [], callable $callback = null, bool $sync = true)
+    {
+        return $this->getGraphClient()->requestPaginate($query, $variables, $callback , $sync);
+    }
+
+    /**
      * Runs a request to the Shopify API (async).
      *
      * @see graph

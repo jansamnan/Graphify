@@ -22,6 +22,18 @@ interface GraphRequester extends LimitAccesser, TimeAccesser, SessionAware, Clie
     public function request(string $query, array $variables = [], bool $sync = true);
 
     /**
+     * Runs a request to the Shopify API.
+     *
+     * @param string $query     The GraphQL query.
+     * @param array  $variables The optional variables for the query.
+     * @param callable  $callback The optional variables for the query.
+     * @param bool   $sync      Optionally wait for the request to finish.
+     *
+     * @return array|Promise
+     */
+    public function requestPaginate(string $query, array $variables = [], callable $callback = null, bool $sync = true);
+
+    /**
      * Returns the base URI to use.
      *
      * @throws \Exception For missing shop domain.

@@ -2,10 +2,11 @@
 
 namespace Jansamnan\Graphify;
 
-use Jansamnan\Graphify\BasicShopifyAPI;
-use Jansamnan\Graphify\APISession;
-use GuzzleHttp\Exception\RequestException;
+use Jansamnan\Graphify\Options;
+use Jansamnan\Graphify\Session;
 use Illuminate\Support\Facades\Log;
+use Jansamnan\Graphify\BasicShopifyAPI;
+use GuzzleHttp\Exception\RequestException;
 
 class Graphify
 {
@@ -16,6 +17,28 @@ class Graphify
      */
     protected $api;
 
+     /**
+     * The Shopify API instance.
+     *
+     * @var Options
+     */
+    protected $options;
+
+     /**
+     * The Shopify API instance.
+     *
+     * @var int
+     */
+    protected $maxRetries;
+
+     /**
+     * The Shopify API instance.
+     *
+     * @var int
+     */
+    protected $retryDelay;
+
+
     /**
      * Constructor.
      *
@@ -23,15 +46,27 @@ class Graphify
      */
     public function __construct()
     {
-        $this->api = new BasicShopifyAPI(new Options());
-
+        // Create a new Options instance
+        $this->options = new Options();
         // Set API credentials and version from config
-        $this->api->setApiKey(config('graphify.api_key'));
-        $this->api->setApiSecret(config('graphify.api_secret'));
-        $this->api->setVersion(config('graphify.api_version'));
-
+        $this->options->setApiKey(config('graphify.api_key'));
+        $this->options->setApiSecret(config('graphify.api_secret'));
+        $this->options->setVersion(config('graphify.api_version'));
+        $this->api = new BasicShopifyAPI($this->options);
         // Set session
-        $this->api->setSession(new APISession(config('graphify.shop_domain'), config('graphify.access_token')));
+        $this->api->setSession(new Session(config('graphify.shop_domain'), config('graphify.access_token')));
+        $this->maxRetries = config('graphify.max_retries', 5);
+        $this->retryDelay = config('graphify.retry_delay', 1);
+    }
+
+    public function graph(string $query, array $variables = [], bool $sync = true)
+    {
+        return $this->api->getGraphClient()->request($query, $variables, $sync);
+    }
+
+    public function graphPaginate(string $query, array $variables = [], callable $callback = null, bool $sync = true)
+    {
+        return $this->api->getGraphClient()->requestPaginate($query, $variables, $callback , $sync);
     }
 
     /**
@@ -44,9 +79,6 @@ class Graphify
      */
     public function query(string $query, array $variables = [])
     {
-        $maxRetries = config('graphify.max_retries', 5);
-        $retryDelay = config('graphify.retry_delay', 1); // in seconds
-
         $attempt = 0;
 
         do {
@@ -77,9 +109,9 @@ class Graphify
 
             } catch (RequestException $e) {
                 $statusCode = $e->getResponse()->getStatusCode();
-                if ($statusCode == 429 && $attempt < $maxRetries) { // Rate limit exceeded
+                if ($statusCode == 429 && $attempt < $this->maxRetries) { // Rate limit exceeded
                     $retryAfter = $e->getResponse()->getHeader('Retry-After')[0] ?? null;
-                    $waitTime = $retryAfter ? intval($retryAfter) : $retryDelay * pow(2, $attempt);
+                    $waitTime = $retryAfter ? intval($retryAfter) : $this->retryDelay * pow(2, $attempt);
                     Log::warning("Rate limit exceeded. Retrying after {$waitTime} seconds.");
                     sleep($waitTime);
                     $attempt++;
@@ -90,7 +122,7 @@ class Graphify
                 Log::error("GraphQL Query Error: " . $e->getMessage());
                 throw $e;
             }
-        } while ($attempt < $maxRetries);
+        } while ($attempt < $this->maxRetries);
 
         throw new \Exception('Maximum retry attempts reached for GraphQL query.');
     }
